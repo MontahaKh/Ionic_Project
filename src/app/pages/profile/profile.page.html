@@ -1,13 +1,66 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>profile</ion-title>
+    <ion-title>Mon profil</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">profile</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <div class="profile-container">
+    <ion-spinner *ngIf="isLoading && !errorMessage" name="crescent"></ion-spinner>
+
+    <ion-text color="danger" *ngIf="errorMessage">
+      <p class="error-message">{{ errorMessage }}</p>
+      <ion-button expand="block" routerLink="/login">Retour à la connexion</ion-button>
+    </ion-text>
+
+    <ion-card *ngIf="!isLoading && profile">
+      <ion-card-content>
+        <div class="profile-avatar" *ngIf="!profile.photoUrl">
+          {{ profile.firstName.charAt(0).toUpperCase() }}
+        </div>
+
+        <img
+          *ngIf="profile.photoUrl"
+          class="profile-photo"
+          [src]="profile.photoUrl"
+          alt="Photo de profil"
+        />
+
+        <h1>{{ profile.firstName }} {{ profile.lastName }}</h1>
+        <p class="role">{{ profile.role === 'admin' ? 'Administrateur' : 'Utilisateur' }}</p>
+
+        <ion-item lines="full">
+          <ion-label>
+            <span class="field-label">E-mail</span>
+            <span>{{ profile.email }}</span>
+          </ion-label>
+        </ion-item>
+
+        <ion-item lines="full">
+          <ion-label>
+            <span class="field-label">Âge</span>
+            <span>{{ profile.age }} ans</span>
+          </ion-label>
+        </ion-item>
+
+        <ion-item lines="none">
+          <ion-label>
+            <span class="field-label">Statut</span>
+            <span>{{ profile.active ? 'Actif' : 'Désactivé' }}</span>
+          </ion-label>
+        </ion-item>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-button
+      *ngIf="!isLoading && profile"
+      expand="block"
+      color="danger"
+      (click)="logout()"
+      [disabled]="isLoggingOut"
+    >
+      <ion-spinner *ngIf="isLoggingOut" name="crescent"></ion-spinner>
+      <span *ngIf="!isLoggingOut">Se déconnecter</span>
+    </ion-button>
+  </div>
 </ion-content>

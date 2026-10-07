@@ -1,13 +1,56 @@
 <ion-header [translucent]="true">
   <ion-toolbar>
-    <ion-title>register</ion-title>
+    <ion-title>Inscription</ion-title>
   </ion-toolbar>
 </ion-header>
 
 <ion-content [fullscreen]="true">
-  <ion-header collapse="condense">
-    <ion-toolbar>
-      <ion-title size="large">register</ion-title>
-    </ion-toolbar>
-  </ion-header>
+  <form class="auth-form" (ngSubmit)="submit()">
+    <h1>Créer un compte</h1>
+    <p>Créez votre profil pour enregistrer vos films favoris.</p>
+
+    <ion-item>
+      <ion-label position="stacked">Prénom</ion-label>
+      <ion-input name="firstName" [(ngModel)]="firstName" autocomplete="given-name" required />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Nom</ion-label>
+      <ion-input name="lastName" [(ngModel)]="lastName" autocomplete="family-name" required />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Âge</ion-label>
+      <ion-input name="age" type="number" [(ngModel)]="age" min="13" max="120" required />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">E-mail</ion-label>
+      <ion-input name="email" type="email" [(ngModel)]="email" autocomplete="email" required />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Mot de passe</ion-label>
+      <ion-input name="password" type="password" [(ngModel)]="password" autocomplete="new-password" required />
+    </ion-item>
+
+    <ion-item>
+      <ion-label position="stacked">Confirmer le mot de passe</ion-label>
+      <ion-input name="confirmPassword" type="password" [(ngModel)]="confirmPassword" autocomplete="new-password" required />
+    </ion-item>
+
+    <ion-text color="danger" *ngIf="errorMessage">
+      <p class="error-message">{{ errorMessage }}</p>
+    </ion-text>
+
+    <ion-button expand="block" type="submit" [disabled]="isSubmitting">
+      <ion-spinner *ngIf="isSubmitting" name="crescent" />
+      <span *ngIf="!isSubmitting">Créer mon compte</span>
+    </ion-button>
+
+    <p class="link-line">
+      Vous avez déjà un compte ?
+      <a routerLink="/login">Se connecter</a>
+    </p>
+  </form>
 </ion-content>
