@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    match /users/{uid} {
+      // un utilisateur lit son profil ; l'admin lit tout
+      allow read: if isSignedIn() && (request.auth.uid == uid || isAdmin());
+
+      // à l'inscription : uniquement son propre doc, role 'user', actif
+      allow create: if isSignedIn()
+        && request.auth.uid == uid
+        && request.resource.data.role == 'user'
+        && request.resource.data.active == true;
+
+      // un utilisateur modifie son profil sans toucher role/active ; l'admin peut tout modifier
+      allow update: if isSignedIn() && (
+        (request.auth.uid == uid
+          && request.resource.data.role == resource.data.role
+          && request.resource.data.active == resource.data.active)
+        || isAdmin()
+      );
+
+      allow delete: if false;   // l'énoncé : désactiver, pas supprimer
+    }
+
+    // films : lecture pour tout connecté, écriture pour l'admin
+    match /movies/{movieId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+  }
+}

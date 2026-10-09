@@ -8,9 +8,12 @@ import {
 } from 'firebase/auth';
 import {
   doc,
+  getDocs,
   getDocFromServer,
+  collection,
   serverTimestamp,
   setDoc,
+  updateDoc,
 } from 'firebase/firestore';
 import { FirebaseService } from './firebase.service';
 import { UserProfile } from '../models/user.model';
@@ -24,6 +27,7 @@ export interface RegisterData {
 }
 
 const PROFILE_REQUEST_TIMEOUT_MS = 10000;
+const USERS_REQUEST_TIMEOUT_MS = 10000;
 
 @Injectable({
   providedIn: 'root',
@@ -77,12 +81,36 @@ export class Auth {
     await signOut(this.firebase.auth);
   }
 
+  async listUsers(): Promise<UserProfile[]> {
+    let timeoutId: number | undefined;
+    try {
+      const usersRequest = getDocs(collection(this.firebase.firestore, 'users'));
+      const timeout = new Promise<never>((_, reject) => {
+        timeoutId = window.setTimeout(() => {
+          reject(new Error('Le chargement des utilisateurs a expiré. Vérifiez les règles Firestore et votre connexion.'));
+        }, USERS_REQUEST_TIMEOUT_MS);
+      });
+      const snapshot = await Promise.race([usersRequest, timeout]);
+      return snapshot.docs.map((userDoc) => ({
+        id: userDoc.id,
+        ...userDoc.data(),
+      } as UserProfile));
+    } finally {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+      }
+    }
+  }
+
+  async setUserActive(userId: string, active: boolean): Promise<void> {
+    await updateDoc(doc(this.firebase.firestore, 'users', userId), { active });
+  }
+
   getCurrentUser(): User | null {
     return this.firebase.auth.currentUser;
   }
 
-  async getCurrentProfile(): Promise<UserProfile | null> {
-    const user = this.getCurrentUser();
+  async getCurrentProfile(user: User | null = this.getCurrentUser()): Promise<UserProfile | null> {
     if (!user) {
       return null;
     }

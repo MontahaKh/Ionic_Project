@@ -1,16 +1,45 @@
 import { TestBed } from '@angular/core/testing';
-import { CanActivateFn } from '@angular/router';
+import { provideRouter, Router } from '@angular/router';
+import { Auth } from '../services/auth';
 import { activeUserGuard } from './active-user-guard';
 
 describe('activeUserGuard', () => {
-  const executeGuard: CanActivateFn = (...guardParameters) => 
-      TestBed.runInInjectionContext(() => activeUserGuard(...guardParameters));
+  it('redirects inactive users to login', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Auth,
+          useValue: {
+            waitForAuthState: () => Promise.resolve({ uid: 'user-1' }),
+            getCurrentProfile: () => Promise.resolve({ active: false, role: 'user' }),
+          },
+        },
+      ],
+    });
 
-  beforeEach(() => {
-    TestBed.configureTestingModule({});
+    const result = await TestBed.runInInjectionContext(() => activeUserGuard({} as never, {} as never));
+    const router = TestBed.inject(Router);
+
+    expect(result).toEqual(router.createUrlTree(['/login']));
   });
 
-  it('should be created', () => {
-    expect(executeGuard).toBeTruthy();
+  it('allows active users', async () => {
+    TestBed.configureTestingModule({
+      providers: [
+        provideRouter([]),
+        {
+          provide: Auth,
+          useValue: {
+            waitForAuthState: () => Promise.resolve({ uid: 'user-1' }),
+            getCurrentProfile: () => Promise.resolve({ active: true, role: 'user' }),
+          },
+        },
+      ],
+    });
+
+    const result = await TestBed.runInInjectionContext(() => activeUserGuard({} as never, {} as never));
+
+    expect(result).toBe(true);
   });
 });

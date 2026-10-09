@@ -1,0 +1,11 @@
+node_modules
+.angular
+www
+coverage
+dist
+out-tsc
+.git
+.gitignore
+.env
+scripts/serviceAccountKey.json
+*.log

@@ -43,10 +43,9 @@ leur interface est encore une page Ionic de base sans logique métier :
 - `/admin/users` : gestion des utilisateurs ;
 - `/admin/movies` : gestion des films.
 
-Les services `Movie`, `Favorite` et `Matching` ainsi que les gardes
-`activeUserGuard` et `adminGuard` sont actuellement des squelettes. Les routes
-administrateur utilisent pour le moment `authGuard` uniquement : le contrôle
-effectif du rôle administrateur reste à implémenter.
+Les services `Movie`, `Favorite` et `Matching` sont actuellement des
+squelettes. Les routes utilisateur vérifient qu'un profil actif est présent et
+les routes administrateur exigent un profil actif dont le rôle vaut `admin`.
 
 ## Technologies utilisées
 
@@ -73,11 +72,55 @@ La configuration Firebase est définie dans :
 - `src/environments/environment.ts` pour le développement ;
 - `src/environments/environment.prod.ts` pour la production.
 
+Les règles Firestore versionnées se trouvent dans `firestore.rules`. Après
+configuration du projet Firebase, elles peuvent être déployées avec :
+
+```bash
+npx firebase-tools deploy --only firestore:rules
+```
+
 ## Installation
 
 ```bash
 npm install
 ```
+
+## Travailler avec Docker
+
+Docker permet à chaque membre de l'équipe d'utiliser la même version de
+Node.js et les mêmes dépendances, sans installer l'environnement localement.
+Docker Desktop doit être démarré.
+
+### Développement avec rechargement à chaud
+
+```bash
+docker compose up app
+```
+
+L'application est disponible sur `http://localhost:4200`. Le répertoire du
+projet est monté dans le conteneur : les modifications de code sont donc
+rechargées automatiquement. Le volume Docker `node_modules` évite d'écraser
+les dépendances Linux du conteneur avec celles éventuellement présentes sur
+Windows ou macOS.
+
+Pour arrêter l'environnement :
+
+```bash
+docker compose down
+```
+
+### Vérifier l'image de production
+
+```bash
+docker compose --profile production up --build production
+```
+
+L'image compilée est disponible sur `http://localhost:8080`. Angular étant une
+application à routes côté client, Nginx redirige les routes inconnues vers
+`index.html`.
+
+Les fichiers `.env` et `scripts/serviceAccountKey.json` sont exclus des images.
+Ils ne doivent jamais être ajoutés à Git ni copiés dans un conteneur.
 
 ## Lancer l'application
 
@@ -131,9 +174,9 @@ src/
 | `/movie-details` | Authentifié | Placeholder |
 | `/favorites` | Authentifié | Placeholder |
 | `/matching` | Authentifié | Placeholder |
-| `/admin/dashboard` | Authentifié | Placeholder |
-| `/admin/users` | Authentifié | Placeholder |
-| `/admin/movies` | Authentifié | Placeholder |
+| `/admin/dashboard` | Administrateur actif | Placeholder |
+| `/admin/users` | Administrateur actif | Placeholder |
+| `/admin/movies` | Administrateur actif | Placeholder |
 
 ## Modèle utilisateur
 
@@ -159,5 +202,5 @@ Les profils stockés dans Firestore suivent la structure suivante :
   exposées dans l'interface.
 - La recherche de films, les détails, les favoris et le matching ne sont pas
   encore reliés à une API ou à Firestore.
-- Les fonctionnalités d'administration et la vérification du rôle `admin`
-  doivent encore être développées.
+- Les fonctionnalités métier d'administration doivent encore être développées ;
+  le contrôle d'accès par rôle est toutefois actif.
