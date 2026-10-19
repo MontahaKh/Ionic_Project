@@ -1,0 +1,116 @@
+<ion-card
+  class="movie-card"
+  [class.list]="view() === 'list'"
+  (pointerdown)="onPressStart()"
+  (pointerup)="onPressEnd()"
+  (pointerleave)="onPressEnd()"
+  (pointercancel)="onPressEnd()"
+  (pointermove)="onPressEnd()">
+
+  <div class="card-body">
+    <!-- L'affiche est un vrai bouton : navigation au clic et accessible au clavier. -->
+    <div class="poster-wrapper">
+      <ion-button type="button" class="poster-button" fill="clear" (click)="openDetails()">
+        @if (movie().posterPath) {
+          <img loading="lazy" class="poster" [src]="movie().posterPath" [alt]="movie().title">
+        } @else {
+          <span class="poster placeholder" aria-hidden="true"></span>
+        }
+      </ion-button>
+
+      <!-- Badge de note en mode grille, superpose a l'affiche. role="img" donne
+           un nom accessible fiable au badge, qui n'est pas un element de formulaire. -->
+      @if (view() === 'grid' && rating()) {
+        <span class="rating-badge" role="img" [attr.aria-label]="ratingLabel()">
+          <ion-icon name="star" aria-hidden="true"></ion-icon>
+          {{ rating() }}
+        </span>
+      }
+
+      <!-- Refus de recommandation en mode grille : un bouton separe de
+           l'affiche, avec arret de la propagation pour ne pas declencher
+           l'appui long de la carte. -->
+      @if (showDislike() && view() === 'grid') {
+        <ion-button
+          type="button"
+          class="dislike-toggle"
+          fill="clear"
+          size="small"
+          [class.active]="isDisliked()"
+          [attr.aria-label]="dislikeLabel()"
+          [title]="dislikeLabel()"
+          (pointerdown)="$event.stopPropagation()"
+          (click)="dislikeToggled.emit(movie())">
+          <ion-icon [name]="dislikeIcon()" aria-hidden="true"></ion-icon>
+        </ion-button>
+      }
+    </div>
+
+    <div class="card-text">
+      <h2 class="title">
+        {{ movie().title }}
+        @if (year()) {
+          <span class="year">({{ year() }})</span>
+        }
+      </h2>
+      @if (genresLabel()) {
+        <p class="genres">{{ genresLabel() }}</p>
+      }
+      <!-- En mode liste l'affiche est trop petite pour un badge : la note
+           prend place dans le bloc texte, apres les genres. -->
+      @if (view() === 'list' && rating()) {
+        <p class="rating" role="img" [attr.aria-label]="ratingLabel()">
+          <ion-icon name="star" aria-hidden="true"></ion-icon>
+          {{ rating() }}
+        </p>
+      }
+    </div>
+  </div>
+
+  <!-- Element separe pour les actions : jamais declencheur d'appui long. -->
+  <div class="card-actions" (pointerdown)="$event.stopPropagation()">
+    @if (view() === 'grid') {
+      <ion-button size="small" fill="outline" (click)="openDetails()">{{ 'card.details' | translate }}</ion-button>
+      <ion-button size="small" [color]="actionColor()" (click)="actionToggled.emit(movie())">
+        {{ actionLabel() }}
+      </ion-button>
+    } @else {
+      <!-- Mode liste : boutons icones empiles, chaque icone porte son libelle
+           pour les lecteurs d'ecran et son infobulle au survol. -->
+      <ion-button
+        type="button"
+        class="icon-button"
+        fill="clear"
+        size="small"
+        [attr.aria-label]="'card.detailsAria' | translate"
+        [title]="'card.detailsAria' | translate"
+        (click)="openDetails()">
+        <ion-icon name="information-circle-outline"></ion-icon>
+      </ion-button>
+      <ion-button
+        type="button"
+        class="icon-button"
+        fill="clear"
+        size="small"
+        [class.filled]="favoriteAction() !== 'remove' && isFavorite()"
+        [attr.aria-label]="actionLabel()"
+        [title]="actionLabel()"
+        (click)="actionToggled.emit(movie())">
+        <ion-icon [name]="actionIcon()"></ion-icon>
+      </ion-button>
+      @if (showDislike()) {
+        <ion-button
+          type="button"
+          class="icon-button dislike-toggle"
+          fill="clear"
+          size="small"
+          [class.active]="isDisliked()"
+          [attr.aria-label]="dislikeLabel()"
+          [title]="dislikeLabel()"
+          (click)="dislikeToggled.emit(movie())">
+          <ion-icon [name]="dislikeIcon()"></ion-icon>
+        </ion-button>
+      }
+    }
+  </div>
+</ion-card>

@@ -1,6 +1,14 @@
 <ion-header>
   <ion-toolbar>
-    <ion-title>Ma playlist de favoris</ion-title>
+    <ion-buttons slot="start">
+      <ion-back-button defaultHref="/home"></ion-back-button>
+    </ion-buttons>
+    <ion-title>{{ 'favorites.title' | translate }}</ion-title>
+    <ion-buttons slot="end">
+      <ion-button (click)="toggleView()">
+        {{ (view() === 'grid' ? 'common.list' : 'common.grid') | translate }}
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -14,18 +22,51 @@
       <ion-text color="danger"><p>{{ errorMessage() }}</p></ion-text>
     }
 
-    @for (favorite of favorites(); track favorite.id) {
-      <ion-card>
-        <ion-card-content>
-          <h2>{{ favorite.title }}</h2>
-          <ion-button color="danger" (click)="remove(favorite.id)">Retirer</ion-button>
-        </ion-card-content>
-      </ion-card>
-    } @empty {
-      @if (!errorMessage()) {
-        <ion-text><p>Aucun film dans votre playlist.</p></ion-text>
-        <ion-button routerLink="/movies">Découvrir des films</ion-button>
+    <ion-searchbar
+      [placeholder]="'favorites.searchPlaceholder' | translate"
+      [value]="search()"
+      (ionInput)="search.set($any($event).detail.value ?? '')">
+    </ion-searchbar>
+
+    <div class="filters">
+      <ion-select
+        interface="popover"
+        [label]="'common.sort' | translate"
+        [value]="sortBy()"
+        (ionChange)="sortBy.set($any($event).detail.value)">
+        <ion-select-option value="popular">{{ 'sort.addedOrder' | translate }}</ion-select-option>
+        <ion-select-option value="title">{{ 'sort.title' | translate }}</ion-select-option>
+        <ion-select-option value="date">{{ 'sort.date' | translate }}</ion-select-option>
+        <ion-select-option value="rating">{{ 'sort.rating' | translate }}</ion-select-option>
+      </ion-select>
+
+      @if (availableGenres().length > 0) {
+        <ion-select
+          interface="popover"
+          [label]="'common.genre' | translate"
+          [value]="selectedGenre()"
+          (ionChange)="selectedGenre.set($any($event).detail.value)">
+          <ion-select-option value="">{{ 'common.allGenres' | translate }}</ion-select-option>
+          @for (genre of availableGenres(); track genre) {
+            <ion-select-option [value]="genre">{{ genre }}</ion-select-option>
+          }
+        </ion-select>
       }
-    }
+    </div>
+
+    <div [class.favorite-grid]="view() === 'grid'" [class.favorite-list]="view() === 'list'">
+      @for (favorite of visibleFavorites(); track favorite.id) {
+        <app-movie-card
+          [movie]="favorite"
+          [view]="view()"
+          favoriteAction="remove"
+          (actionToggled)="remove(favorite.id)" />
+      } @empty {
+        @if (!errorMessage()) {
+          <ion-text><p>{{ 'favorites.empty' | translate }}</p></ion-text>
+          <ion-button routerLink="/movies">{{ 'favorites.discover' | translate }}</ion-button>
+        }
+      }
+    </div>
   }
 </ion-content>

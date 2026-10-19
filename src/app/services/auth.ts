@@ -19,6 +19,11 @@ import { getDownloadURL, ref, uploadString } from 'firebase/storage';
 import { Capacitor } from '@capacitor/core';
 import { FirebaseService } from './firebase.service';
 import { UserProfile } from '../models/user.model';
+import { TranslationService } from '../i18n/translation.service';
+import {
+  PROFILE_PHOTO_MAX_DATA_URL_LENGTH,
+  ProfilePhotoTooLargeError,
+} from '../shared/photo';
 
 export interface RegisterData {
   firstName: string;
@@ -37,6 +42,7 @@ const USERS_REQUEST_TIMEOUT_MS = 10000;
 })
 export class Auth {
   private readonly firebase = inject(FirebaseService);
+  private readonly i18n = inject(TranslationService);
 
   async register(data: RegisterData): Promise<UserProfile> {
     const credential = await createUserWithEmailAndPassword(
@@ -78,6 +84,26 @@ export class Auth {
     return getDownloadURL(photoReference);
   }
 
+  /**
+   * Met a jour la photo de profil sans Firebase Storage. La data URL est
+   * deja compressee par l'appelant et validee contre la limite Firestore.
+   */
+  async updateProfilePhoto(photoDataUrl: string): Promise<string> {
+    if (photoDataUrl.length > PROFILE_PHOTO_MAX_DATA_URL_LENGTH) {
+      throw new ProfilePhotoTooLargeError();
+    }
+
+    const user = await this.waitForAuthState();
+    if (!user) {
+      throw new Error(this.i18n.t('errors.notLoggedIn'));
+    }
+
+    await updateDoc(doc(this.firebase.firestore, 'users', user.uid), {
+      photoUrl: photoDataUrl,
+    });
+    return photoDataUrl;
+  }
+
   async login(email: string, password: string): Promise<UserProfile> {
     const credential = await signInWithEmailAndPassword(
       this.firebase.auth,
@@ -88,7 +114,11 @@ export class Auth {
 
     if (!profile.active) {
       await signOut(this.firebase.auth);
-      throw new Error('Ce compte a été désactivé par un administrateur.');
+      // Code explicite pour que les pages distinguent ce refus des erreurs
+      // Firebase brutes, dont le message reste en anglais.
+      const error = new Error(this.i18n.t('errors.accountDisabled')) as Error & { code: string };
+      error.code = 'auth/account-disabled';
+      throw error;
     }
 
     return profile;
@@ -104,7 +134,7 @@ export class Auth {
       const usersRequest = getDocs(collection(this.firebase.firestore, 'users'));
       const timeout = new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => {
-          reject(new Error('Le chargement des utilisateurs a expiré. Vérifiez les règles Firestore et votre connexion.'));
+          reject(new Error(this.i18n.t('errors.usersLoadTimeout')));
         }, USERS_REQUEST_TIMEOUT_MS);
       });
       const snapshot = await Promise.race([usersRequest, timeout]);
@@ -175,13 +205,13 @@ export class Auth {
       );
       const timeout = new Promise<never>((_, reject) => {
         timeoutId = window.setTimeout(() => {
-          reject(new Error('Le chargement du profil a expiré. Vérifiez votre connexion, puis réessayez.'));
+          reject(new Error(this.i18n.t('errors.profileRequestTimeout')));
         }, PROFILE_REQUEST_TIMEOUT_MS);
       });
       const snapshot = await Promise.race([profileRequest, timeout]);
 
       if (!snapshot.exists()) {
-        throw new Error('Le profil utilisateur est introuvable.');
+        throw new Error(this.i18n.t('errors.userProfileNotFound'));
       }
 
       return {
